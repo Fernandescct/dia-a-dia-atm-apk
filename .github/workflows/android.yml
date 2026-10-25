@@ -1,4 +1,4 @@
-name: APK do Dia a Dia do ATM (WhatsApp direto)
+name: APK do Dia a Dia do ATM (Achados corrigidos)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   apk:
-    name: Compilar e publicar APK de teste
+    name: Compilar e publicar APK Android
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,14 +25,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Verificar que não existe compartilhamento genérico
+      - name: Verificar WhatsApp direto e correção de Achados
         run: |
           if grep -q 'Intent.createChooser(' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java; then
-            echo 'ERRO: menu Compartilhar não deve ser utilizado pelo botão WhatsApp.'
+            echo 'ERRO: não utilizar menu Compartilhar.'
             exit 1
           fi
           grep -q 'setPackage(packageName)' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
           grep -q 'whatsapp://send?text=' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
+          grep -q 'Achado por:' app/src/main/assets/atm-find-patch.js
+          grep -q 'Empresa:' app/src/main/assets/atm-find-patch.js
 
       - name: Compilar APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
@@ -40,24 +42,23 @@ jobs:
       - name: Disponibilizar APK na execução
         uses: actions/upload-artifact@v4
         with:
-          name: Dia_a_Dia_do_ATM_WhatsApp_Direto
+          name: Dia_a_Dia_do_ATM_Achados_Corrigidos
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Criar lançamento para download direto
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v1.1.0-rc2
+          tag_name: v1.2.0-rc1
           target_commitish: main
-          name: Dia a Dia do ATM — WhatsApp direto (teste)
+          name: Dia a Dia do ATM — Achados e Perdidos corrigidos
           prerelease: true
           body: |
             **Versão de teste Android.**
 
-            - Botão WhatsApp abre conversa diretamente no app instalado, sem menu Compartilhar.
-            - WhatsApp comum e WhatsApp Business são suportados.
-            - O site e o layout permanecem no Netlify, sem mudanças.
-            - ID Android diferente para instalar lado a lado com a versão anterior; não desinstale a versão antiga antes de testar.
-
-            Teste no celular: abrir o aplicativo, escolher um comunicado e tocar no botão WhatsApp. Confirme a abertura do aplicativo e o texto preenchido.
+            - Corrigido o formulário de Achados e Perdidos: Quem encontrou e Empresa.
+            - Comunicado com o formato Item, Data, Hora, Local, Achado por, Empresa.
+            - WhatsApp abre diretamente no aplicativo instalado.
+            - As demais abas continuam sem mudanças.
+            - Novo ID Android para instalar ao lado da versão anterior, sem apagar seus dados.
           files: app/build/outputs/apk/debug/app-debug.apk
           fail_on_unmatched_files: true
