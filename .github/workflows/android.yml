@@ -1,0 +1,60 @@
+name: APK do Dia a Dia do ATM (WhatsApp direto)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Compilar e publicar APK de teste
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Verificar que não existe compartilhamento genérico
+        run: |
+          if grep -q 'Intent.createChooser(' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java; then
+            echo 'ERRO: menu Compartilhar não deve ser utilizado pelo botão WhatsApp.'
+            exit 1
+          fi
+          grep -q 'setPackage(packageName)' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
+          grep -q 'whatsapp://send?text=' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
+
+      - name: Compilar APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Disponibilizar APK na execução
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dia_a_Dia_do_ATM_WhatsApp_Direto
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Criar lançamento para download direto
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v1.1.0-rc2
+          target_commitish: main
+          name: Dia a Dia do ATM — WhatsApp direto (teste)
+          prerelease: true
+          body: |
+            **Versão de teste Android.**
+
+            - Botão WhatsApp abre conversa diretamente no app instalado, sem menu Compartilhar.
+            - WhatsApp comum e WhatsApp Business são suportados.
+            - O site e o layout permanecem no Netlify, sem mudanças.
+            - ID Android diferente para instalar lado a lado com a versão anterior; não desinstale a versão antiga antes de testar.
+
+            Teste no celular: abrir o aplicativo, escolher um comunicado e tocar no botão WhatsApp. Confirme a abertura do aplicativo e o texto preenchido.
+          files: app/build/outputs/apk/debug/app-debug.apk
+          fail_on_unmatched_files: true
