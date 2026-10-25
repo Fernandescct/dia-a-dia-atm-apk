@@ -1,4 +1,4 @@
-name: APK do Dia a Dia do ATM (Reverter e Livro)
+name: APK do Dia a Dia do ATM (Interface do celular)
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Restaurar código-fonte do aplicativo
-        run: unzip -qo Dia_a_Dia_do_ATM_Android_Fonte_v1.5.0.zip -d .
+        run: unzip -qo Dia_a_Dia_do_ATM_Android_Fonte_v1.6.0.zip -d .
 
       - uses: actions/setup-java@v4
         with:
@@ -43,6 +43,15 @@ jobs:
           grep -q 'undoByIndex' app/src/main/assets/atm-workflow-patch.js
           grep -q 'd.includeRonda = true' app/src/main/assets/atm-workflow-patch.js
           grep -q 'd.includeMovement = true' app/src/main/assets/atm-workflow-patch.js
+          grep -q 'atm-ui-patch.js' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
+          grep -q 'atm-inline-directory' app/src/main/assets/atm-ui-patch.js
+          grep -q 'undoByIndex.has(current)' app/src/main/assets/atm-workflow-patch.js
+          if grep -q 'atm-undo-inline' app/src/main/assets/atm-workflow-patch.js; then
+            echo 'ERRO: só pode existir um botão Reverter por aba.'
+            exit 1
+          fi
+          grep -q 'Theme.Material.NoActionBar' app/src/main/res/values/styles.xml
+          grep -q 'windowSoftInputMode="adjustResize"' app/src/main/AndroidManifest.xml
 
       - name: Compilar APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
@@ -50,15 +59,15 @@ jobs:
       - name: Disponibilizar APK na execução
         uses: actions/upload-artifact@v4
         with:
-          name: Dia_a_Dia_do_ATM_Reversao_v1_5
+          name: Dia_a_Dia_do_ATM_Interface_Corrigida_v1_6
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Criar lançamento para download direto
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v1.5.0-rc1
+          tag_name: v1.6.0-rc1
           target_commitish: main
-          name: Dia a Dia do ATM — Reversão em todas as abas e Livro corrigido
+          name: Dia a Dia do ATM — Interface Android corrigida
           prerelease: true
           body: |
             **Versão de teste Android.**
@@ -75,6 +84,10 @@ jobs:
             - Aba Colaboradores com botão para copiar a lista completa, organizada por escala e turno, com nome e RE, pronta para colar no WhatsApp ou texto.
             - O site e o layout permanecem no Netlify, sem mudanças.
             - ID Android diferente para instalar lado a lado com a versão anterior; não desinstale a versão antiga antes de testar.
+            - Sugestões de colaboradores foram trocadas por uma lista compacta, abaixo do campo, com até 3 opções por vez e sem cobrir o teclado.
+            - Seleção nativa de turno e escala usa o tema escuro do Android, em vez da janela branca.
+            - Removido o aviso duplicado do Reverter; fica somente o botão inferior da aba com registro copiado.
+            - Ao mudar de aba, o Reverter some imediatamente e só reaparece na sua categoria ao retornar, se ainda houver um registro recuperável.
 
             Teste no celular: abrir o aplicativo, escolher um comunicado e tocar no botão WhatsApp. Confirme a abertura do aplicativo e o texto preenchido.
           files: app/build/outputs/apk/debug/app-debug.apk
