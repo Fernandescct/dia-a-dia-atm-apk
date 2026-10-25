@@ -1,4 +1,4 @@
-name: APK do Dia a Dia do ATM (Achados corrigidos)
+name: APK do Dia a Dia do ATM (FA/FT e Convocação)
 
 on:
   workflow_dispatch:
@@ -8,13 +8,13 @@ permissions:
 
 jobs:
   apk:
-    name: Compilar e publicar APK Android
+    name: Compilar e publicar APK de teste
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Restaurar código-fonte do aplicativo
-        run: unzip -qo Dia_a_Dia_do_ATM_Android_Fonte.zip -d .
+        run: unzip -qo Dia_a_Dia_do_ATM_Android_Fonte_v1.3.0.zip -d .
 
       - uses: actions/setup-java@v4
         with:
@@ -25,16 +25,17 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Verificar WhatsApp direto e correção de Achados
+      - name: Verificar WhatsApp, Achados e movimentações
         run: |
           if grep -q 'Intent.createChooser(' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java; then
-            echo 'ERRO: não utilizar menu Compartilhar.'
+            echo 'ERRO: menu Compartilhar não deve ser utilizado pelo botão WhatsApp.'
             exit 1
           fi
           grep -q 'setPackage(packageName)' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
           grep -q 'whatsapp://send?text=' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
-          grep -q 'Achado por:' app/src/main/assets/atm-find-patch.js
-          grep -q 'Empresa:' app/src/main/assets/atm-find-patch.js
+          grep -q 'atm-movement-patch.js' app/src/main/java/br/com/diaadiaatm/app/MainActivity.java
+          grep -q 'CONVOCAÇÃO' app/src/main/assets/atm-movement-patch.js
+          grep -q 'atm-new-found' app/src/main/assets/atm-movement-patch.js
 
       - name: Compilar APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
@@ -42,23 +43,26 @@ jobs:
       - name: Disponibilizar APK na execução
         uses: actions/upload-artifact@v4
         with:
-          name: Dia_a_Dia_do_ATM_Achados_Corrigidos
+          name: Dia_a_Dia_do_ATM_Movimentacoes_v1_3
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Criar lançamento para download direto
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v1.2.0-rc1
+          tag_name: v1.3.0-rc1
           target_commitish: main
-          name: Dia a Dia do ATM — Achados e Perdidos corrigidos
+          name: Dia a Dia do ATM — FA/FT, Convocação e novos Achados
           prerelease: true
           body: |
             **Versão de teste Android.**
 
-            - Corrigido o formulário de Achados e Perdidos: Quem encontrou e Empresa.
-            - Comunicado com o formato Item, Data, Hora, Local, Achado por, Empresa.
-            - WhatsApp abre diretamente no aplicativo instalado.
-            - As demais abas continuam sem mudanças.
-            - Novo ID Android para instalar ao lado da versão anterior, sem apagar seus dados.
+            - FA e Convocação geram FT automaticamente nas telas de Movimentações e Escalado.
+            - Modelos diurno e noturno, com RE preenchido pelo cadastro.
+            - Achados e Perdidos limpa o formulário ao compartilhar ou baixar o registro.
+            - WhatsApp abre diretamente no app instalado, sem menu Compartilhar.
+            - O site e o layout permanecem no Netlify, sem mudanças.
+            - ID Android diferente para instalar lado a lado com a versão anterior; não desinstale a versão antiga antes de testar.
+
+            Teste no celular: abrir o aplicativo, escolher um comunicado e tocar no botão WhatsApp. Confirme a abertura do aplicativo e o texto preenchido.
           files: app/build/outputs/apk/debug/app-debug.apk
           fail_on_unmatched_files: true
