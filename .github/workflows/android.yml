@@ -1,4 +1,4 @@
-name: APK do Dia a Dia do ATM (Encerramento e Colaboradores)
+name: APK do Dia a Dia do ATM (Reverter e Livro)
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Restaurar código-fonte do aplicativo
-        run: unzip -qo Dia_a_Dia_do_ATM_Android_Fonte_v1.4.0_final.zip -d .
+        run: unzip -qo Dia_a_Dia_do_ATM_Android_Fonte_v1.5.0.zip -d .
 
       - uses: actions/setup-java@v4
         with:
@@ -40,6 +40,9 @@ jobs:
           grep -q 'Reverter último registro' app/src/main/assets/atm-workflow-patch.js
           grep -q 'PROCEDIMENTO DE BAIXA' app/src/main/assets/atm-workflow-patch.js
           grep -q 'atm-roster-copy' app/src/main/assets/atm-workflow-patch.js
+          grep -q 'undoByIndex' app/src/main/assets/atm-workflow-patch.js
+          grep -q 'd.includeRonda = true' app/src/main/assets/atm-workflow-patch.js
+          grep -q 'd.includeMovement = true' app/src/main/assets/atm-workflow-patch.js
 
       - name: Compilar APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
@@ -47,15 +50,15 @@ jobs:
       - name: Disponibilizar APK na execução
         uses: actions/upload-artifact@v4
         with:
-          name: Dia_a_Dia_do_ATM_Fluxos_v1_4
+          name: Dia_a_Dia_do_ATM_Reversao_v1_5
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Criar lançamento para download direto
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v1.4.0-rc1
+          tag_name: v1.5.0-rc1
           target_commitish: main
-          name: Dia a Dia do ATM — Colaboradores, Reverter, Baixa e Livro
+          name: Dia a Dia do ATM — Reversão em todas as abas e Livro corrigido
           prerelease: true
           body: |
             **Versão de teste Android.**
@@ -64,9 +67,11 @@ jobs:
             - Modelos diurno e noturno, com RE preenchido pelo cadastro.
             - Achados e Perdidos limpa o formulário ao compartilhar ou baixar o registro.
             - WhatsApp abre diretamente no app instalado, sem menu Compartilhar.
-            - Aba Escalado limpa FA e FT após copiar/compartilhar, mantendo o texto fixo e permitindo reverter.
+            - Aba Escalado limpa FA e FT após copiar/compartilhar, mantendo o texto fixo e com botão visível para reverter.
             - Procedimento de Baixa no modelo sem FT e sem RE; após copiar, limpa os dados com opção de reverter.
-            - Livro sem KM 51. pré-definido, com ponto de milhar automático; após copiar limpa KM e ocorrências, com opção de reverter.
+            - Livro sem KM 51. pré-definido, com ponto de milhar automático; após copiar ou compartilhar limpa KM e ocorrências, com opção de reverter.
+            - Os campos Ronda da marcenaria e Movimentação da equipe voltam marcados no próximo Livro, mas podem ser desmarcados manualmente.
+            - Escalado, Livro e Procedimento de Baixa guardam backups independentes para reverter mesmo ao mudar de aba.
             - Aba Colaboradores com botão para copiar a lista completa, organizada por escala e turno, com nome e RE, pronta para colar no WhatsApp ou texto.
             - O site e o layout permanecem no Netlify, sem mudanças.
             - ID Android diferente para instalar lado a lado com a versão anterior; não desinstale a versão antiga antes de testar.
